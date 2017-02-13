@@ -1,87 +1,82 @@
 package com.beatdev;
 
-import com.beatdev.domain.User;
-import com.beatdev.repository.AbstractUserRepository;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.restdocs.JUnitRestDocumentation;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
-import org.testng.annotations.AfterMethod;
 
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(webEnvironment = MOCK)
+@AutoConfigureMockMvc
 public class BeatdevApplicationTests {
 
     @Autowired
-    private WebApplicationContext context;
     private MockMvc mockMvc;
 
-
-    @Rule
-    public JUnitRestDocumentation restDocumentation =
-            new JUnitRestDocumentation("target/generated-snippets");
-
-    @Autowired
-    AbstractUserRepository userRepository;
-
-    @Before
-    public void setUp() {
-        this.mockMvc = MockMvcBuilders.webAppContextSetup(this.context)
-                .apply(documentationConfiguration(this.restDocumentation))
-                .build();
-    }
-
-    @AfterMethod
-    public void tearDown() {
-        this.restDocumentation.afterTest();
-    }
-
-    public void test() {
+    @Test
+    public void testRestService() {
+        //testing requests for storing users into database
         try {
-            this.mockMvc.perform(get("/").accept(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk())
-                    .andDo(document("index"));
+            mockMvc.perform(post("/user/?name=name1&email=email1&avatarURL=avatar1").accept(MediaType.APPLICATION_JSON)).andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+            mockMvc.perform(post("/user/?name=name2&email=email2&avatarURL=avatar2").accept(MediaType.APPLICATION_JSON)).andExpect(status().isOk())
+                    .andExpect(content().string("2"));
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public void test2(){
+        //testing retrieving users from database
         try {
-            this.mockMvc.perform(get("/user/5").accept(MediaType.APPLICATION_JSON))
+            mockMvc.perform(get("/user/1").accept(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andDo(document("index", responseFields(
-                            fieldWithPath("contact").description("The user's contact details"),
-                            fieldWithPath("contact.email").description("The user's email address"))));
+                    .andExpect(jsonPath("$.id").value("1"))
+                    .andExpect(jsonPath("$.name").value("name1"))
+                    .andExpect(jsonPath("$.email").value("email1"))
+                    .andExpect(jsonPath("$.avatarURL").value("avatar1"));
+            mockMvc.perform(get("/user/2").accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value("2"))
+                    .andExpect(jsonPath("$.name").value("name2"))
+                    .andExpect(jsonPath("$.email").value("email2"))
+                    .andExpect(jsonPath("$.avatarURL").value("avatar2"));
+            //returns status 404 because user with id 3 was not created
+            mockMvc.perform(get("/user/3").accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isNotFound());
+
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        //testing changing status of the user in database
+        try {
+            mockMvc.perform(post("/status/1/?status=online").accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value("1"))
+                    .andExpect(jsonPath("$.prevStatus").value("OFFLINE"))
+                    .andExpect(jsonPath("$.newStatus").value("ONLINE"));
+            mockMvc.perform(post("/status/1/?status=offline").accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value("1"))
+                    .andExpect(jsonPath("$.prevStatus").value("ONLINE"))
+                    .andExpect(jsonPath("$.newStatus").value("OFFLINE"));
+            //returns status 404 because user with id 3 was not created
+            mockMvc.perform(post("/status/3/?status=offline").accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isNotFound());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
-    @Test
-    public void contextLoads() {
-    }
-
-    @Test
-    public void testRepository() {
-        User user1 = new User();
-
-
-    }
 
 }

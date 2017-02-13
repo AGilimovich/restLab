@@ -2,30 +2,35 @@ package com.beatdev.repository;
 
 import com.beatdev.domain.User;
 
-import java.util.List;
-
 /**
- * Created by Aleksandr on 09.02.2017.
+ * This interface provides list of methods for access to user repository.
  */
+
 public interface AbstractUserRepository {
 
     /**
-     * Saves user data in repository.
-     * @param user which data to be saved.
+     * Method saves user data in the repository.
+     *
+     * @param user which data have to be saved.
      * @return unique id assigned to user.
      */
     long saveUser(User user);
 
     /**
-     * Searches user in repository with provided {@id}.
-     * @param id of user
+     * Searches user in the repository by id.
+     *
+     * @param id of user.
      * @return constructed User object.
+     * @throws {@code UserNotFoundException} if user with provided id was not found in the repository.
      */
-    User findUserById(long id);
+    User findUserById(long id) throws UserNotFoundException;
 
-    User findUserByName(String name);
-
-    List<User> findAll();
+    /**
+     * Updates user with new data.
+     *
+     * @param user object with new data.
+     */
+    void update(User user);
 
 
 }
